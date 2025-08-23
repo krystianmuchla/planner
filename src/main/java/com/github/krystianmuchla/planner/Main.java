@@ -1,11 +1,19 @@
-package com.github.krystianmuchla;
+package com.github.krystianmuchla.planner;
 
+import com.github.krystianmuchla.planner.data.Kid;
+import com.github.krystianmuchla.planner.data.Plan;
+import com.github.krystianmuchla.planner.data.Slot;
+import com.github.krystianmuchla.planner.data.Teacher;
 import com.google.ortools.Loader;
 import com.google.ortools.sat.CpModel;
 import com.google.ortools.sat.CpSolver;
 import com.google.ortools.sat.CpSolverStatus;
 import com.google.ortools.sat.Literal;
 
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -25,13 +33,19 @@ public class Main {
             Plan plan = createPlan(teacher, kids);
             Csv.writePlan(plan);
         } catch (Exception exception) {
-            // todo write error to file
-            throw new RuntimeException(exception);
+            try (FileWriter fileWriter = new FileWriter("error.txt")) {
+                StringWriter stringWriter = new StringWriter();
+                exception.printStackTrace(new PrintWriter(stringWriter));
+                fileWriter.write(stringWriter.toString());
+            } catch (IOException ioException) {
+                throw new RuntimeException(ioException);
+            }
+            System.exit(1);
         }
     }
 
     private static Plan createPlan(Teacher teacher, Kid[] kids) {
-        Boolean[] rawTeacher = teacher.availabilities;
+        Boolean[] rawTeacher = Arrays.stream(teacher.availabilities).map(availability -> availability.available).toArray(Boolean[]::new);
         Boolean[][] rawKids = Arrays.stream(kids).map(kid -> kid.availabilities).toArray(Boolean[][]::new);
 
         Loader.loadNativeLibraries();
@@ -50,15 +64,17 @@ public class Main {
 
         Plan plan = new Plan();
         Map<Integer, Kid> kidMap = Arrays.stream(kids).collect(Collectors.toMap(kid -> kid.id, Function.identity()));
-        for (int slot = 0; slot < teacher.availabilities.length; slot++) {
-            List<Kid> planSlot = new ArrayList<>();
-            for (int kid = 0; kid < kids.length; kid++) {
-                Boolean kidAttending = solver.booleanValue(variables[slot][kid]);
+        for (int slotNumber = 0; slotNumber < teacher.availabilities.length; slotNumber++) {
+            String slotId = teacher.availabilities[slotNumber].id;
+            List<Kid> slotKids = new ArrayList<>();
+            for (int kidId = 0; kidId < kids.length; kidId++) {
+                Boolean kidAttending = solver.booleanValue(variables[slotNumber][kidId]);
                 if (kidAttending) {
-                    planSlot.add(kidMap.get(kid));
+                    slotKids.add(kidMap.get(kidId));
                 }
             }
-            plan.slots.add(planSlot);
+            Slot slot = new Slot(slotId, slotKids);
+            plan.slots.add(slot);
         }
 
         return plan;

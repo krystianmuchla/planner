@@ -1,16 +1,16 @@
-package com.github.krystianmuchla;
+package com.github.krystianmuchla.planner.data;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class Plan {
-    final List<List<Kid>> slots;
+    public final List<Slot> slots;
 
     public Plan() {
         this(new ArrayList<>());
     }
 
-    public Plan(List<List<Kid>> slots) {
+    public Plan(List<Slot> slots) {
         this.slots = slots;
     }
 }

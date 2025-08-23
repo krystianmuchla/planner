@@ -1,5 +1,9 @@
-package com.github.krystianmuchla;
+package com.github.krystianmuchla.planner;
 
+import com.github.krystianmuchla.planner.data.Availability;
+import com.github.krystianmuchla.planner.data.Kid;
+import com.github.krystianmuchla.planner.data.Plan;
+import com.github.krystianmuchla.planner.data.Teacher;
 import com.opencsv.CSVReader;
 import com.opencsv.CSVWriter;
 import com.opencsv.exceptions.CsvException;
@@ -21,14 +25,17 @@ public class Csv {
     private static final String PLAN_PATH = "plan.csv";
 
     public static Teacher readTeacher() throws IOException, CsvException {
-        List<Boolean> availabilities = new ArrayList<>();
+        List<Availability> availabilities = new ArrayList<>();
         try (CSVReader reader = getReader(TEACHER_PATH)) {
             List<String[]> rows = reader.readAll();
             for (String[] row : rows) {
-                availabilities.add(Boolean.parseBoolean(row[0]));
+                String id = row[0];
+                Boolean available = Boolean.parseBoolean(row[1]);
+                Availability availability = new Availability(id, available);
+                availabilities.add(availability);
             }
         }
-        return new Teacher(availabilities.toArray(new Boolean[0]));
+        return new Teacher(availabilities.toArray(new Availability[0]));
     }
 
     public static Kid[] readKids() throws IOException, CsvException {
@@ -50,12 +57,17 @@ public class Csv {
 
     public static void writePlan(Plan plan) throws IOException {
         List<String[]> rows = new ArrayList<>();
+        String[] header = new String[plan.slots.size()];
+        for (int x = 0; x < header.length; x++) {
+            header[x] = plan.slots.get(x).id;
+        }
+        rows.add(header);
         boolean next = true;
         for (int y = 0; next; y++) {
             String[] row = new String[plan.slots.size()];
             boolean any = false;
-            for (int x = 0; x < plan.slots.size(); x++) {
-                List<Kid> kids = plan.slots.get(x);
+            for (int x = 0; x < row.length; x++) {
+                List<Kid> kids = plan.slots.get(x).kids;
                 if (kids.size() > y) {
                     any = true;
                     row[x] = kids.get(y).toString();
@@ -78,16 +90,18 @@ public class Csv {
             List<String[]> rows = reader.readAll();
             try {
                 String[] names = rows.remove(0);
-                for (String name : names) {
-                    grades.add(new Grade(name));
+                for (int x = 1; x < names.length; x++) {
+                    String name = names[x];
+                    Grade grade = new Grade(name);
+                    grades.add(grade);
                 }
             } catch (IndexOutOfBoundsException exception) {
                 return grades;
             }
             for (String[] row : rows) {
-                for (int i = 0; i < row.length; i++) {
-                    Boolean availability = Boolean.parseBoolean(row[i]);
-                    grades.get(i).availabilities.add(availability);
+                for (int x = 1; x < row.length; x++) {
+                    Boolean availability = Boolean.parseBoolean(row[x]);
+                    grades.get(x - 1).availabilities.add(availability);
                 }
             }
         }

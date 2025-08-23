@@ -1,4 +1,4 @@
-package com.github.krystianmuchla;
+package com.github.krystianmuchla.planner;
 
 import com.google.ortools.sat.*;
 

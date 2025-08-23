@@ -1,11 +1,11 @@
-package com.github.krystianmuchla;
+package com.github.krystianmuchla.planner.data;
 
 public class Kid {
-    final Integer id;
-    final String firstName;
-    final String lastName;
-    final String grade;
-    final Boolean[] availabilities;
+    public final Integer id;
+    public final String firstName;
+    public final String lastName;
+    public final String grade;
+    public final Boolean[] availabilities;
 
     public Kid(Integer id, String firstName, String lastName, String grade, Boolean[] availabilities) {
         this.id = id;
