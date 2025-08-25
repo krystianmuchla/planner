@@ -1,5 +1,8 @@
 package com.github.krystianmuchla.planner;
 
+import com.github.krystianmuchla.planner.data.Kid;
+import com.github.krystianmuchla.planner.data.Teacher;
+import com.github.krystianmuchla.planner.data.Variables;
 import com.google.ortools.sat.*;
 
 import java.util.ArrayList;
@@ -7,49 +10,58 @@ import java.util.List;
 
 // Constraint programming
 public class Cp {
-    public static Literal[][] defineVariables(CpModel model, Boolean[] teacher, Boolean[][] kids) {
-        Literal[][] variables = new Literal[teacher.length][kids.length];
-        for (int slot = 0; slot < teacher.length; slot++) {
+    public static Variables defineVariables(CpModel model, Teacher teacher, Kid[] kids) {
+        BoolVar[][] slots = new BoolVar[teacher.getSlotsLength()][kids.length];
+        IntVar[] slotSizes = new IntVar[teacher.getSlotsLength()];
+        IntVar maxSlotSize = model.newIntVar(0, kids.length, "maxSlotSize");
+        for (int slot = 0; slot < teacher.getSlotsLength(); slot++) {
+            slotSizes[slot] = model.newIntVar(0, kids.length, "slotSize_" + slot);
             for (int kid = 0; kid < kids.length; kid++) {
-                variables[slot][kid] = model.newBoolVar("slot_" + slot + "_kid_" + kid);
+                slots[slot][kid] = model.newBoolVar("slot_" + slot + "_kid_" + kid);
             }
         }
-        return variables;
+        return new Variables(slots, slotSizes, maxSlotSize);
     }
 
-    public static void defineConstraints(CpModel model, Literal[][] variables, Boolean[] teacher, Boolean[][] kids) {
+    public static void defineConstraints(CpModel model, Variables variables, Teacher teacher, Kid[] kids) {
+        BoolVar[][] slots = variables.slots;
+        IntVar[] slotSizes = variables.slotSizes;
+        IntVar maxSlotSize = variables.maxSlotSize;
         for (int kid = 0; kid < kids.length; kid++) {
-            List<Literal> slots = new ArrayList<>();
-            for (int slot = 0; slot < teacher.length; slot++) {
-                slots.add(variables[slot][kid]);
+            List<Literal> kidSlots = new ArrayList<>();
+            for (int slot = 0; slot < teacher.getSlotsLength(); slot++) {
+                kidSlots.add(slots[slot][kid]);
             }
-            model.addExactlyOne(slots);
+            model.addExactlyOne(kidSlots);
         }
-        for (int slot = 0; slot < teacher.length; slot++) {
-            Boolean teacherAvailable = teacher[slot];
+        for (int slot = 0; slot < teacher.getSlotsLength(); slot++) {
+            Boolean teacherAvailable = teacher.isAvailable(slot);
             for (int kid = 0; kid < kids.length; kid++) {
-                Boolean kidAvailable = kids[kid][slot];
+                Boolean kidAvailable = kids[kid].isAvailable(slot);
                 if (!teacherAvailable || !kidAvailable) {
-                    model.addEquality(variables[slot][kid], 0);
+                    model.addEquality(slots[slot][kid], 0);
+                }
+            }
+        }
+        for (int slot = 0; slot < teacher.getSlotsLength(); slot++) {
+            LinearExprBuilder builder = LinearExpr.newBuilder();
+            for (int kid = 0; kid < kids.length; kid++) {
+                builder.add(slots[slot][kid]);
+            }
+            model.addEquality(slotSizes[slot], builder);
+            model.addLessOrEqual(slotSizes[slot], maxSlotSize);
+        }
+        for (int kid = 0; kid < kids.length; kid++) {
+            if (kids[kid].individual) {
+                for (int slot = 0; slot < teacher.getSlotsLength(); slot++) {
+                    model.addLessOrEqual(slotSizes[slot], 1).onlyEnforceIf(slots[slot][kid]);
                 }
             }
         }
     }
 
-    public static void defineObjectiveFunction(CpModel model, Literal[][] variables, Boolean[] teacher, Boolean[][] kids) {
-        IntVar[] slotSize = new IntVar[teacher.length];
-        for (int slot = 0; slot < teacher.length; slot++) {
-            LinearExprBuilder builder = LinearExpr.newBuilder();
-            for (int kid = 0; kid < kids.length; kid++) {
-                builder.add(variables[slot][kid]);
-            }
-            slotSize[slot] = model.newIntVar(0, kids.length, "slotSize_" + slot);
-            model.addEquality(slotSize[slot], builder);
-        }
-        IntVar maxSlotSize = model.newIntVar(0, kids.length, "maxSlotSize");
-        for (int slot = 0; slot < teacher.length; slot++) {
-            model.addLessOrEqual(slotSize[slot], maxSlotSize);
-        }
+    public static void defineObjectiveFunction(CpModel model, Variables variables) {
+        IntVar maxSlotSize = variables.maxSlotSize;
         model.minimize(maxSlotSize);
     }
 }

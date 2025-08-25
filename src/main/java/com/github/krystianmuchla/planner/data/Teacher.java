@@ -6,4 +6,12 @@ public class Teacher {
     public Teacher(Availability[] availabilities) {
         this.availabilities = availabilities;
     }
+
+    public int getSlotsLength() {
+        return availabilities.length;
+    }
+
+    public Boolean isAvailable(int slot) {
+        return availabilities[slot].available;
+    }
 }

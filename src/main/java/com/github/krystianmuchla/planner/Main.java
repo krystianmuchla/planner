@@ -1,14 +1,10 @@
 package com.github.krystianmuchla.planner;
 
-import com.github.krystianmuchla.planner.data.Kid;
-import com.github.krystianmuchla.planner.data.Plan;
-import com.github.krystianmuchla.planner.data.Slot;
-import com.github.krystianmuchla.planner.data.Teacher;
+import com.github.krystianmuchla.planner.data.*;
 import com.google.ortools.Loader;
 import com.google.ortools.sat.CpModel;
 import com.google.ortools.sat.CpSolver;
 import com.google.ortools.sat.CpSolverStatus;
-import com.google.ortools.sat.Literal;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -45,21 +41,18 @@ public class Main {
     }
 
     private static Plan createPlan(Teacher teacher, Kid[] kids) {
-        Boolean[] rawTeacher = Arrays.stream(teacher.availabilities).map(availability -> availability.available).toArray(Boolean[]::new);
-        Boolean[][] rawKids = Arrays.stream(kids).map(kid -> kid.availabilities).toArray(Boolean[][]::new);
-
         Loader.loadNativeLibraries();
 
         CpModel model = new CpModel();
-        Literal[][] variables = Cp.defineVariables(model, rawTeacher, rawKids);
-        Cp.defineConstraints(model, variables, rawTeacher, rawKids);
-        Cp.defineObjectiveFunction(model, variables, rawTeacher, rawKids);
+        Variables variables = Cp.defineVariables(model, teacher, kids);
+        Cp.defineConstraints(model, variables, teacher, kids);
+        Cp.defineObjectiveFunction(model, variables);
 
         CpSolver solver = new CpSolver();
         CpSolverStatus status = solver.solve(model);
 
         if (!ACCEPTABLE_STATUSES.contains(status)) {
-            throw new RuntimeException("Could not find an optimal or feasible solution");
+            throw new RuntimeException("Could not find an optimal or feasible solution, received: " + status);
         }
 
         Plan plan = new Plan();
@@ -68,7 +61,7 @@ public class Main {
             String slotId = teacher.availabilities[slotNumber].id;
             List<Kid> slotKids = new ArrayList<>();
             for (int kidId = 0; kidId < kids.length; kidId++) {
-                Boolean kidAttending = solver.booleanValue(variables[slotNumber][kidId]);
+                Boolean kidAttending = solver.booleanValue(variables.slots[slotNumber][kidId]);
                 if (kidAttending) {
                     slotKids.add(kidMap.get(kidId));
                 }

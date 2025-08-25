@@ -48,8 +48,9 @@ public class Csv {
                 String firstName = row[0];
                 String lastName = row[1];
                 String grade = row[2];
+                Boolean individual = Boolean.parseBoolean(row[3]);
                 Boolean[] availabilities = grades.get(grade).availabilities.toArray(new Boolean[0]);
-                kids.add(new Kid(id++, firstName, lastName, grade, availabilities));
+                kids.add(new Kid(id++, firstName, lastName, grade, individual, availabilities));
             }
         }
         return kids.toArray(new Kid[0]);
