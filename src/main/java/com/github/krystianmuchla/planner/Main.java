@@ -24,9 +24,12 @@ public class Main {
 
     public static void main(String[] args) {
         try {
-            Teacher teacher = Csv.readTeacher();
             Kid[] kids = Csv.readKids();
-            Plan plan = createPlan(teacher, kids);
+            if (kids.length == 0) {
+                throw new IllegalStateException("Could not create plan for empty kid list");
+            }
+            String[] slots = resolveSlots(kids[0]);
+            Plan plan = createPlan(slots, kids);
             Csv.writePlan(plan);
         } catch (Exception exception) {
             try (FileWriter fileWriter = new FileWriter("error.txt")) {
@@ -40,12 +43,16 @@ public class Main {
         }
     }
 
-    private static Plan createPlan(Teacher teacher, Kid[] kids) {
+    private static String[] resolveSlots(Kid kid) {
+        return Arrays.stream(kid.availabilities).map(availability -> availability.id).toArray(String[]::new);
+    }
+
+    private static Plan createPlan(String[] slots, Kid[] kids) {
         Loader.loadNativeLibraries();
 
         CpModel model = new CpModel();
-        Variables variables = Cp.defineVariables(model, teacher, kids);
-        Cp.defineConstraints(model, variables, teacher, kids);
+        Variables variables = Cp.defineVariables(model, slots.length, kids);
+        Cp.defineConstraints(model, variables, slots.length, kids);
         Cp.defineObjectiveFunction(model, variables);
 
         CpSolver solver = new CpSolver();
@@ -57,8 +64,8 @@ public class Main {
 
         Plan plan = new Plan();
         Map<Integer, Kid> kidMap = Arrays.stream(kids).collect(Collectors.toMap(kid -> kid.id, Function.identity()));
-        for (int slotNumber = 0; slotNumber < teacher.availabilities.length; slotNumber++) {
-            String slotId = teacher.availabilities[slotNumber].id;
+        for (int slotNumber = 0; slotNumber < slots.length; slotNumber++) {
+            String slotId = slots[slotNumber];
             List<Kid> slotKids = new ArrayList<>();
             for (int kidId = 0; kidId < kids.length; kidId++) {
                 Boolean kidAttending = solver.booleanValue(variables.slots[slotNumber][kidId]);

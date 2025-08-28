@@ -6,7 +6,7 @@ public class Kid {
     public final String lastName;
     public final String grade;
     public final Boolean individual;
-    public final Boolean[] availabilities;
+    public final Availability[] availabilities;
 
     public Kid(
         Integer id,
@@ -14,7 +14,7 @@ public class Kid {
         String lastName,
         String grade,
         Boolean individual,
-        Boolean[] availabilities
+        Availability[] availabilities
     ) {
         this.id = id;
         this.firstName = firstName;
@@ -25,7 +25,7 @@ public class Kid {
     }
 
     public Boolean isAvailable(int slot) {
-        return availabilities[slot];
+        return availabilities[slot].available;
     }
 
     @Override

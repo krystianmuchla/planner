@@ -3,7 +3,6 @@ package com.github.krystianmuchla.planner;
 import com.github.krystianmuchla.planner.data.Availability;
 import com.github.krystianmuchla.planner.data.Kid;
 import com.github.krystianmuchla.planner.data.Plan;
-import com.github.krystianmuchla.planner.data.Teacher;
 import com.opencsv.CSVReader;
 import com.opencsv.CSVWriter;
 import com.opencsv.exceptions.CsvException;
@@ -19,24 +18,9 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class Csv {
-    private static final String TEACHER_PATH = "teacher.csv";
     private static final String GRADES_PATH = "grades.csv";
     private static final String KIDS_PATH = "kids.csv";
     private static final String PLAN_PATH = "plan.csv";
-
-    public static Teacher readTeacher() throws IOException, CsvException {
-        List<Availability> availabilities = new ArrayList<>();
-        try (CSVReader reader = getReader(TEACHER_PATH)) {
-            List<String[]> rows = reader.readAll();
-            for (String[] row : rows) {
-                String id = row[0];
-                Boolean available = Boolean.parseBoolean(row[1]);
-                Availability availability = new Availability(id, available);
-                availabilities.add(availability);
-            }
-        }
-        return new Teacher(availabilities.toArray(new Availability[0]));
-    }
 
     public static Kid[] readKids() throws IOException, CsvException {
         Map<String, Grade> grades = readGrades().stream().collect(Collectors.toMap(grade -> grade.name, Function.identity()));
@@ -49,7 +33,7 @@ public class Csv {
                 String lastName = row[1];
                 String grade = row[2];
                 Boolean individual = Boolean.parseBoolean(row[3]);
-                Boolean[] availabilities = grades.get(grade).availabilities.toArray(new Boolean[0]);
+                Availability[] availabilities = grades.get(grade).availabilities.toArray(new Availability[0]);
                 kids.add(new Kid(id++, firstName, lastName, grade, individual, availabilities));
             }
         }
@@ -100,8 +84,10 @@ public class Csv {
                 return grades;
             }
             for (String[] row : rows) {
+                String id = row[0];
                 for (int x = 1; x < row.length; x++) {
-                    Boolean availability = Boolean.parseBoolean(row[x]);
+                    Boolean available = Boolean.parseBoolean(row[x]);
+                    Availability availability = new Availability(id, available);
                     grades.get(x - 1).availabilities.add(availability);
                 }
             }
@@ -119,13 +105,13 @@ public class Csv {
 
     private static class Grade {
         final String name;
-        final List<Boolean> availabilities;
+        final List<Availability> availabilities;
 
         Grade(String name) {
             this(name, new ArrayList<>());
         }
 
-        Grade(String name, List<Boolean> availabilities) {
+        Grade(String name, List<Availability> availabilities) {
             this.name = name;
             this.availabilities = availabilities;
         }
