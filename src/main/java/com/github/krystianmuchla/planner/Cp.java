@@ -57,13 +57,6 @@ public class Cp {
             );
             model.addLessOrEqual(slotSizes[slot], maxSlotSize);
         }
-        for (int kid = 0; kid < kids.length; kid++) {
-            if (kids[kid].individual) {
-                for (int slot = 0; slot < slotsSize; slot++) {
-                    model.addLessOrEqual(slotSizes[slot], 1).onlyEnforceIf(slots[slot][kid]);
-                }
-            }
-        }
     }
 
     public static void defineObjectiveFunction(CpModel model, Variables variables) {
